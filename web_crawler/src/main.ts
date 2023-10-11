@@ -3,6 +3,16 @@ import { PlaywrightCrawler } from 'crawlee';
 // import { getSingleWordObject } from './utils.js';
 import { test } from './utils.js';
 
+interface IVerbConjugation {
+    isNull?: boolean,
+    auxiliar?: string,
+    verb?: string,
+    ending?: string,
+    person?: string,
+    conjugation?: string,
+    conjugationHTML?: string
+}
+
 // PlaywrightCrawler crawls the web using a headless
 // browser controlled by the Playwright library.
 const crawler = new PlaywrightCrawler({
@@ -12,43 +22,95 @@ const crawler = new PlaywrightCrawler({
 
     // Use the requestHandler to process each of the crawled pages.
     async requestHandler({ request, page, enqueueLinks, log, pushData }) {
-        const title = await page.title();
-        log.info(`Title of ${request.loadedUrl} is '${title}'`);
 
+        // EVALUATE ARTICLE
+        const dataIndicativeForm = await page.$eval('article', (article) => {
 
-        // A function to be evaluated by Playwright within the browser context.
-        const data = await page.$$eval('.vTbl', ($posts) => {
-            const scrapedData: { tense: string, conjugations: any}[] = [];
+            // Gets the properties from a verb html element:
+            const getVerbProperties = (elTr: HTMLElement): IVerbConjugation => {
+                // const elConj: HTMLElement = elTr.lastElementChild?.firstElementChild as HTMLElement
+                const elsCols: HTMLTableCellElement[] = Array.from(elTr.querySelectorAll("td"))
+                const numCols: number = elsCols.length
+                const person = elsCols[0].innerHTML.trim() || ''
 
-            // We're getting the title, rank and URL of each post on Hacker News.
-            $posts.forEach(async ($post) => {
+                if (numCols === 2) return {
+                    person: person,
+                    auxiliar: '',
+                    verb: elsCols[1].innerText || '',
+                    ending: '',
+                    conjugation: elsCols[1].innerText || '',
+                    conjugationHTML: elsCols[1].innerHTML || ''
+                }
 
-                const elsConjugations = $post.querySelectorAll('tr') as NodeListOf<HTMLElement>
-                let objConjugations: object[] = []
+                if (numCols === 3) return {
+                    person: person,
+                    auxiliar: elsCols[1].innerText || '',
+                    verb: elsCols[2].innerText || '',
+                    ending: '',
+                    conjugation: `${elsCols[1].innerText || ''} ${elsCols[2].innerText || ''}`,
+                    conjugationHTML: `${elsCols[1].innerHTML || ''} ${elsCols[2].innerHTML || ''}`
+                }
 
-                elsConjugations.forEach((elTr)=> {
-                    const numColumns = elTr.childElementCount
-                    const elConj: HTMLElement = elTr.lastElementChild?.firstElementChild as HTMLElement
+                if (numCols === 4) return {
+                    person: person,
+                    auxiliar: elsCols[1].innerText || '',
+                    verb: elsCols[2].innerText || '',
+                    ending: elsCols[3].innerText || '',
+                    conjugation: `${elsCols[1].innerText || ''} ${elsCols[2].innerText || ''} ${elsCols[3].innerText || ''}`,
+                    conjugationHTML: `${elsCols[1].innerHTML || ''} ${elsCols[2].innerHTML || ''} ${elsCols[3].innerHTML || ''}`
+                }
 
-                    // Verb conj is only one word: ex: "trinken"
-                    if (numColumns === 2) objConjugations.push({
-                        person: elTr.firstElementChild?.innerHTML || '',
-                        conjugation: (elConj as HTMLElement).innerText,
-                        conjugationHTML: (elConj as HTMLElement).innerHTML,
+                return {isNull: true}
+            }
+
+            // -------------  SECTION INDICATIVE
+            const elSectionStandard = article.querySelectorAll(".rBox .rBoxWht ")[1]
+            const elSectionIndicative = article.querySelector("#indikativ + section") as HTMLElement
+            const elSectionConjunctive = article.querySelector("#konjunktiv + section") as HTMLElement
+            const elSectionConditional = article.querySelector("#konditional + section") as HTMLElement
+            const elSectionImperative = article.querySelector("#imperativ + section") as HTMLElement
+            const elsSections = [elSectionIndicative, elSectionConjunctive, elSectionConditional, elSectionImperative]
+
+            let completeData: any = {}
+
+            for (const [index, elSection] of elsSections.entries()) {
+                let scrapedFormData: {nonExistent?: boolean, tense?: string, conjugations?: any}[] = []
+
+                // Case if form does not exist, ie with Conjunctive on verb "sein"
+                if (elSection === null) {
+                    {scrapedFormData.push({nonExistent: true})}
+                    continue
+                }
+
+                const elsTables = Array.from(elSection.querySelectorAll(".vTbl"))
+
+                for (const elTable of elsTables) {
+                    const elsConjugations = elTable.querySelectorAll('tr') as NodeListOf<HTMLElement>
+                    let objConjugations: IVerbConjugation[] = []
+                    elsConjugations.forEach((elTr)=> objConjugations.push(getVerbProperties(elTr)))
+
+                    scrapedFormData.push({
+                        tense: (elTable.querySelector('h3') as HTMLElement).innerText || '',
+                        conjugations: objConjugations
                     })
-                })
+                }
 
-                scrapedData.push({
-                    tense: ($post.querySelector('h2') as HTMLElement).innerText || '',
-                    conjugations: objConjugations
-                });
-            });
+                const formName = index === 0 ? "indicative"
+                    : index === 1 ? "conjunctive"
+                    : index === 2 ? "conditionalOrConjunctiveII" : "imperative"
 
-            return scrapedData;
+                completeData[formName] = scrapedFormData
+            }
+
+            return completeData
         });
 
+
         // Save results as JSON to ./storage/datasets/default
-        await pushData({ title, url: request.loadedUrl, datapage: data });
+        await pushData({
+            url: request.loadedUrl,
+            forms: {dataIndicativeForm}}
+        )
 
         // Extract links from the current page
         // and add them to the crawling queue.
@@ -58,7 +120,7 @@ const crawler = new PlaywrightCrawler({
     // headless: false,
 });
 
-await crawler.addRequests(['https://www.verbformen.de/konjugation/sein.htm']);
+// await crawler.addRequests(['https://www.verbformen.de/konjugation/sein.htm']);
 await crawler.addRequests(['https://www.verbformen.de/konjugation/trinken.htm']);
 
 // Add first URL to the queue and start the crawl.
