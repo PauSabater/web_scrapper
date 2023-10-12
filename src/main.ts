@@ -8,11 +8,10 @@ interface IVerbConjugation {
     conjugationHTML?: string
 }
 
-// PlaywrightCrawler crawls the web using a headless
-// browser controlled by the Playwright library.
+// Initiate PlaywrightCrawler class
 const crawler = new PlaywrightCrawler({
 
-    // Stop crawling after several pages
+    // Only need one page, the corresponding from the page
     maxRequestsPerCrawl: 1,
 
     // Use the requestHandler to process each of the crawled pages.
@@ -28,7 +27,6 @@ const crawler = new PlaywrightCrawler({
 
             // Gets the properties from a verb html element:
             const getVerbProperties = (elTr: HTMLElement, isImperative: boolean): IVerbConjugation => {
-                // const elConj: HTMLElement = elTr.lastElementChild?.firstElementChild as HTMLElement
                 const elsCols: HTMLTableCellElement[] = Array.from(elTr.querySelectorAll("td"))
                 const numCols: number = elsCols.length
                 const person = elsCols[!isImperative ? 0 : 1].innerHTML.trim() || ''
@@ -124,8 +122,7 @@ const crawler = new PlaywrightCrawler({
         // and add them to the crawling queue.
         await enqueueLinks();
     },
-    // Uncomment this option to see the browser window.
-    // headless: false,
+    headless: true,
 })
 
 verbsList.forEach(async (verb: any)=> {
