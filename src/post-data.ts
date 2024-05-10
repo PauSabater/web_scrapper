@@ -2,41 +2,22 @@ import fs from "fs/promises"
 import path from "path"
 import { fileURLToPath } from "url"
 import fss from "fs"
-// import { verbsList } from "./list"
+import { verbsList } from "./verbs.js"
 
 
 const __dirname: string = path.dirname(fileURLToPath(import.meta.url))
-const pathResults = "../../results/"
-// const numFiles = fss.readdirSync(
-//     path.resolve(__dirname, "../../descriptions/")
-// ).length
+const pathResults = "../../results/to-post/"
+const files = fss.readdirSync(
+    path.resolve(__dirname, "../../results/to-post/")
+)
 
 const readFilesContent = () => {
-    [
-        'sehen',
-        'wollen',
-        'lassen',
-        'stehen',
-        'finden',
-        'liegen',
-        'denken',
-        'nehmen',
-        'tun',
-        'glauben',
-        'sprechen',
-        'zeigen',
-        'fühlen',
-        'mögen',
-        'halten',
-        'bringen',
-        'leben',
-        'fahren',
-        'essen',
-        'schlafen',
-].forEach((verb, i)=> {
+    files.forEach((verb, i)=> {
 
-        console.log("heyc   lets post" + verb)
-        fs.readFile(path.resolve(__dirname, `../../results/${verb}.json`))
+        console.log("heyc   lets post " + verb)
+        console.log(path.resolve(__dirname, `../../results/to-post/${verb}`))
+        fs.readFile(path.resolve(__dirname, `../../results/to-post/${verb}`))
+
             .then(data => {
                 const verbData = JSON.parse(data.toString())
 
@@ -62,11 +43,16 @@ const postVerbData = (verbData: any) => {
         "Content-Type": "application/json"
     }
 
-    fetch("http://localhost:9090/verbs/create", {
+    fetch("http://localhost:9090/api/verbs/create", {
         method: "POST",
         headers: headers,
         body: JSON.stringify(verbData)
     })
+    // fetch(`http://localhost:9090/api/verbs/update/${verbData.verb}`, {
+    //     method: "PATCH",
+    //     headers: headers,
+    //     body: JSON.stringify(verbData)
+    // })
     .then(async response => {
         if (!response.ok) {
             const text = await response.text();
@@ -76,7 +62,7 @@ const postVerbData = (verbData: any) => {
         else return response.json()
     })
     .then(data => {
-        console.log("success")
+        console.log("success" + data.verb.verb)
         console.log(data)
     })
     .catch(error => {
