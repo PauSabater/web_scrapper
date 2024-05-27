@@ -14,7 +14,7 @@
     },
     "include": [
         "src/**/*"
-    ],
+, "index.js", "rename.js", "getIrregulars.js"],
     "exclude": [
         "node_modules",
         "./node_modules",
