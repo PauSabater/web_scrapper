@@ -2,7 +2,6 @@ import fs from "fs/promises"
 import path from "path"
 import { fileURLToPath } from "url"
 import fss from "fs"
-import { verbsList } from '../list.js'
 import { modalVerbs } from '../list.js'
 // import { auxiliaryVerbs } from '../list.js'
 
@@ -27,20 +26,21 @@ const readFilesContent = (numFiles: number) => {
                 const verbData = JSON.parse(data.toString())
                 const verbName = verbData.verb
                 const newVerbObj = verbData
+                newVerbObj.data.properties.isModal = modalVerbs.includes(verbName)
 
-                await fs.readFile(path.resolve(__dirname, `${pathDescriptions}${verbName}.json`))
-                    .then((descriptions) => {
-                        Object.assign(newVerbObj, verbData)
-                        Object.assign(newVerbObj, JSON.parse(descriptions.toString()))
-                        newVerbObj.data.properties.isModal = modalVerbs.includes(verbName)
-                    })
+                // await fs.readFile(path.resolve(__dirname, `${pathDescriptions}${verbName}.json`))
+                //     .then((descriptions) => {
+                //         Object.assign(newVerbObj, verbData)
+                //         Object.assign(newVerbObj, JSON.parse(descriptions.toString()))
+                //         newVerbObj.data.properties.isModal = modalVerbs.includes(verbName)
+                //     })
 
-                await fs.readFile(path.resolve(__dirname, `${pathExamples}${verbName}.json`))
-                .then((examples) => {
-                    const newVerbObj = verbData
-                    Object.assign(newVerbObj, verbData)
-                    Object.assign(newVerbObj, JSON.parse(examples.toString()))
-                })
+                // await fs.readFile(path.resolve(__dirname, `${pathExamples}${verbName}.json`))
+                // .then((examples) => {
+                //     const newVerbObj = verbData
+                //     Object.assign(newVerbObj, verbData)
+                //     Object.assign(newVerbObj, JSON.parse(examples.toString()))
+                // })
 
                 await fs.writeFile(path.resolve(__dirname, `${pathResults}${verbName}.json`), JSON.stringify(newVerbObj))
 
