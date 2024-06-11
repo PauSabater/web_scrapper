@@ -7,6 +7,7 @@ storage
 list.ts
 .DS_Store
 descriptions/
+scratched/
 examples/
 src/list.ts
 results/
